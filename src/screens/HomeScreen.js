@@ -6,14 +6,14 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  Dimensions,
-  Animated
+  Dimensions
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, SIZES, QUICK_ADD_OPTIONS, DEFAULT_DAILY_GOAL } from '../constants';
 import { StorageUtils } from '../utils/storage';
 import { NotificationUtils } from '../utils/notifications';
+import WaterBallProgress from '../components/WaterBallProgress';
 
 const { width } = Dimensions.get('window');
 
@@ -22,7 +22,6 @@ export default function HomeScreen() {
   const [todayAmount, setTodayAmount] = useState(0);
   const [todayRecords, setTodayRecords] = useState([]);
   const [quickAddOptions, setQuickAddOptions] = useState(QUICK_ADD_OPTIONS);
-  const [progressAnimation] = useState(new Animated.Value(0));
 
   // 加载数据
   const loadData = async () => {
@@ -35,14 +34,6 @@ export default function HomeScreen() {
       
       const total = records.reduce((sum, record) => sum + record.amount, 0);
       setTodayAmount(total);
-      
-      // 动画更新进度
-      const progress = Math.min(total / (goal || DEFAULT_DAILY_GOAL), 1);
-      Animated.timing(progressAnimation, {
-        toValue: progress,
-        duration: 1000,
-        useNativeDriver: false,
-      }).start();
     } catch (error) {
       console.error('加载数据失败:', error);
     }
@@ -83,89 +74,6 @@ export default function HomeScreen() {
     }
   };
 
-  // 计算进度百分比
-  const getProgressPercentage = () => {
-    return Math.min(Math.round((todayAmount / dailyGoal) * 100), 100);
-  };
-
-  // 获取进度颜色
-  const getProgressColor = () => {
-    const percentage = getProgressPercentage();
-    if (percentage >= 100) return COLORS.success;
-    if (percentage >= 75) return COLORS.accent;
-    if (percentage >= 50) return COLORS.primary;
-    return COLORS.secondary;
-  };
-
-  // 渲染进度圆环
-  const renderProgressCircle = () => {
-    const percentage = getProgressPercentage();
-    const remaining = Math.max(0, dailyGoal - todayAmount);
-    const progressColor = getProgressColor();
-    
-    return (
-      <View style={styles.progressContainer}>
-        {/* 主要进度显示 */}
-        <View style={styles.progressMainCard}>
-          <View style={styles.progressHeader}>
-            <Text style={styles.progressTitle}>今日进度</Text>
-            <Text style={styles.progressPercentage}>{percentage}%</Text>
-          </View>
-          
-          {/* 进度条 */}
-          <View style={styles.progressBarWrapper}>
-            <View style={styles.progressBarBackground}>
-              <Animated.View 
-                style={[
-                  styles.progressBarFill,
-                  {
-                    width: progressAnimation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['0%', `${percentage}%`]
-                    }),
-                    backgroundColor: progressColor
-                  }
-                ]}
-              />
-            </View>
-          </View>
-          
-          {/* 数值显示 */}
-          <View style={styles.progressNumbers}>
-            <View style={styles.progressMainNumber}>
-              <Text style={styles.progressAmount}>{todayAmount}</Text>
-              <Text style={styles.progressUnit}>ml</Text>
-            </View>
-            <Text style={styles.progressGoal}>/ {dailyGoal}ml</Text>
-          </View>
-        </View>
-        
-        {/* 统计卡片 */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <Text style={styles.statCardValue}>{todayAmount}ml</Text>
-            <Text style={styles.statCardLabel}>已完成</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statCardValue}>{remaining}ml</Text>
-            <Text style={styles.statCardLabel}>剩余</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statCardValue}>{todayRecords.length}</Text>
-            <Text style={styles.statCardLabel}>记录次数</Text>
-          </View>
-        </View>
-        
-        {/* 鼓励文字 */}
-        <View style={styles.encouragementContainer}>
-          <Text style={styles.encouragementText}>
-            {remaining > 0 ? `再喝 ${remaining}ml 就完成目标了！` : '🎉 今日目标已达成，继续保持！'}
-          </Text>
-        </View>
-      </View>
-    );
-  };
-
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* 头部渐变背景 */}
@@ -179,7 +87,27 @@ export default function HomeScreen() {
 
       {/* 进度显示 */}
       <View style={styles.progressSection}>
-        {renderProgressCircle()}
+        <WaterBallProgress
+          currentAmount={todayAmount}
+          goalAmount={dailyGoal}
+          size={250}
+        />
+        
+        {/* 统计卡片 */}
+        <View style={styles.statsGrid}>
+          <View style={styles.statCard}>
+            <Text style={styles.statCardValue}>{todayAmount}ml</Text>
+            <Text style={styles.statCardLabel}>已完成</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statCardValue}>{Math.max(0, dailyGoal - todayAmount)}ml</Text>
+            <Text style={styles.statCardLabel}>剩余</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statCardValue}>{todayRecords.length}</Text>
+            <Text style={styles.statCardLabel}>记录次数</Text>
+          </View>
+        </View>
       </View>
 
       {/* 快捷添加按钮 */}
@@ -267,89 +195,20 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
   },
-  progressContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  progressMainCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: SIZES.borderRadius,
-    padding: SIZES.padding,
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 20,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 20,
-  },
-  progressTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  progressPercentage: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-  },
-  progressBarWrapper: {
-    width: '100%',
-    height: 12,
-    backgroundColor: COLORS.background,
-    borderRadius: 6,
-    marginBottom: 20,
-    overflow: 'hidden',
-  },
-  progressBarBackground: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 6,
-    backgroundColor: COLORS.background,
-  },
-  progressBarFill: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    height: '100%',
-    borderRadius: 6,
-  },
-  progressNumbers: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'center',
-  },
-  progressMainNumber: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  progressAmount: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  progressUnit: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    marginLeft: 4,
-  },
-  progressGoal: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    marginLeft: 8,
-  },
   statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
     paddingHorizontal: 20,
+    marginTop: 20,
   },
   statCard: {
     alignItems: 'center',
     flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingVertical: 15,
+    borderRadius: SIZES.borderRadius,
+    marginHorizontal: 5,
   },
   statCardValue: {
     fontSize: 18,
@@ -360,16 +219,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textSecondary,
     marginTop: 4,
-  },
-  encouragementContainer: {
-    marginTop: 20,
-    paddingHorizontal: 20,
-  },
-  encouragementText: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    fontWeight: '500',
   },
   quickAddSection: {
     padding: SIZES.padding,
