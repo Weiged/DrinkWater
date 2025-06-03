@@ -3,11 +3,27 @@ import { Platform } from 'react-native';
 
 // 配置通知处理
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
+  handleNotification: async (notification) => {
+    const notificationType = notification.request.content.data?.type;
+    console.log('收到通知，类型:', notificationType);
+    
+    // 根据通知类型决定显示方式
+    let shouldShowInList = false;
+    if (notificationType === 'water_reminder' || notificationType === 'smart_reminder') {
+      shouldShowInList = true;
+    } else if (notificationType === 'goal_achieved') {
+      shouldShowInList = false;
+    }
+    
+    console.log('是否显示在通知列表:', shouldShowInList);
+    
+    return {
+      shouldShowBanner: true,
+      shouldShowList: shouldShowInList,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    };
+  },
 });
 
 export const NotificationUtils = {
@@ -147,15 +163,6 @@ export const NotificationUtils = {
       console.error('获取通知列表失败:', error);
       return [];
     }
-  },
-
-  // 发送达成目标祝贺通知
-  async sendGoalAchievedNotification(amount, goal) {
-    const percentage = Math.round((amount / goal) * 100);
-    await this.sendNotification(
-      '🎉 恭喜达成目标！',
-      `今日已完成 ${percentage}% 的饮水目标，继续保持！`
-    );
   },
 
   // 发送鼓励通知

@@ -81,7 +81,6 @@ export default function HomeScreen() {
       // 检查是否达成目标
       const newTotal = todayAmount + amount;
       if (newTotal >= dailyGoal && todayAmount < dailyGoal) {
-        await NotificationUtils.sendGoalAchievedNotification(newTotal, dailyGoal);
         showAlert('🎉 恭喜！', '今日饮水目标已达成！', 'success', { confirmText: '太棒了！' });
       }
       
