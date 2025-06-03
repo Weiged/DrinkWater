@@ -349,13 +349,16 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.surface,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 15,
   },
   recordIconText: {
-    fontSize: 20,
+    fontSize: 18,
+    color: COLORS.primary,
   },
   recordInfo: {
     flex: 1,
