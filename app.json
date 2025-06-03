@@ -34,7 +34,7 @@
         "expo-notifications",
         {
           "color": "#4FC3F7"
-        }
+    }
       ]
     ]
   }

@@ -6,7 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  Dimensions
+  Dimensions,
+  Modal,
+  TextInput
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
@@ -22,6 +24,8 @@ export default function HomeScreen() {
   const [todayAmount, setTodayAmount] = useState(0);
   const [todayRecords, setTodayRecords] = useState([]);
   const [quickAddOptions, setQuickAddOptions] = useState(QUICK_ADD_OPTIONS);
+  const [showCustomModal, setShowCustomModal] = useState(false);
+  const [customAmount, setCustomAmount] = useState('');
 
   // 加载数据
   const loadData = async () => {
@@ -74,94 +78,162 @@ export default function HomeScreen() {
     }
   };
 
+  // 自定义添加
+  const showCustomInput = () => {
+    setShowCustomModal(true);
+  };
+
+  const handleCustomSubmit = () => {
+    const amount = parseInt(customAmount);
+    if (amount && amount > 0 && amount <= 9999) {
+      addWaterRecord(amount);
+      setShowCustomModal(false);
+      setCustomAmount('');
+    } else {
+      Alert.alert('提示', '请输入有效的饮水量 (1-9999ml)');
+    }
+  };
+
+  const handleCustomCancel = () => {
+    setShowCustomModal(false);
+    setCustomAmount('');
+  };
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* 头部渐变背景 */}
+    <>
+      {/* 渐变背景头部 */}
       <LinearGradient
-        colors={COLORS.gradient}
+        colors={[COLORS.primary, COLORS.secondary]}
         style={styles.header}
       >
-        <Text style={styles.headerTitle}>今日饮水</Text>
-        <Text style={styles.headerSubtitle}>保持健康饮水习惯</Text>
+        <Text style={styles.headerTitle}>喝水提醒</Text>
+        <Text style={styles.headerSubtitle}>今天已喝 {todayAmount}ml</Text>
       </LinearGradient>
 
-      {/* 进度显示 */}
-      <View style={styles.progressSection}>
-        <WaterBallProgress
-          currentAmount={todayAmount}
-          goalAmount={dailyGoal}
-          size={250}
-        />
-        
-        {/* 统计卡片 */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <Text style={styles.statCardValue}>{todayAmount}ml</Text>
-            <Text style={styles.statCardLabel}>已完成</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statCardValue}>{Math.max(0, dailyGoal - todayAmount)}ml</Text>
-            <Text style={styles.statCardLabel}>剩余</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statCardValue}>{todayRecords.length}</Text>
-            <Text style={styles.statCardLabel}>记录次数</Text>
-          </View>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* 进度显示 */}
+        <View style={styles.progressSection}>
+          <WaterBallProgress
+            currentAmount={todayAmount}
+            goalAmount={dailyGoal}
+            size={220}
+          />
         </View>
-      </View>
 
-      {/* 快捷添加按钮 */}
-      <View style={styles.quickAddSection}>
-        <Text style={styles.sectionTitle}>快捷添加</Text>
-        <View style={styles.quickAddGrid}>
-          {quickAddOptions.map((option) => (
+        {/* 快捷添加按钮 */}
+        <View style={styles.quickAddSection}>
+          <Text style={styles.sectionTitle}>快捷添加</Text>
+          <View style={styles.quickAddGrid}>
+            {quickAddOptions.map((option) => (
+              <TouchableOpacity
+                key={option.id}
+                style={styles.quickAddButton}
+                onPress={() => addWaterRecord(option.amount)}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={[COLORS.primary, COLORS.secondary]}
+                  style={styles.quickAddGradient}
+                >
+                  <Text style={styles.quickAddText}>{option.label}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            ))}
+            
+            {/* 自定义添加按钮 */}
             <TouchableOpacity
-              key={option.id}
               style={styles.quickAddButton}
-              onPress={() => addWaterRecord(option.amount)}
+              onPress={showCustomInput}
               activeOpacity={0.7}
             >
               <LinearGradient
-                colors={[COLORS.primary, COLORS.secondary]}
+                colors={[COLORS.accent, '#FF6B6B']}
                 style={styles.quickAddGradient}
               >
-                <Text style={styles.quickAddText}>{option.label}</Text>
+                <Text style={styles.quickAddText}>自定义</Text>
               </LinearGradient>
             </TouchableOpacity>
-          ))}
+          </View>
         </View>
-      </View>
 
-      {/* 今日记录 */}
-      <View style={styles.recordsSection}>
-        <Text style={styles.sectionTitle}>今日记录</Text>
-        {todayRecords.length > 0 ? (
-          <View style={styles.recordsList}>
-            {todayRecords.slice(-5).reverse().map((record) => (
-              <View key={record.id} style={styles.recordItem}>
-                <View style={styles.recordIcon}>
-                  <Text style={styles.recordIconText}>💧</Text>
+        {/* 今日记录 */}
+        <View style={styles.recordsSection}>
+          <Text style={styles.sectionTitle}>今日记录</Text>
+          {todayRecords.length > 0 ? (
+            <View style={styles.recordsList}>
+              {todayRecords.slice(-5).reverse().map((record) => (
+                <View key={record.id} style={styles.recordItem}>
+                  <View style={styles.recordIcon}>
+                    <Text style={styles.recordIconText}>💧</Text>
+                  </View>
+                  <View style={styles.recordInfo}>
+                    <Text style={styles.recordAmount}>{record.amount}ml</Text>
+                    <Text style={styles.recordTime}>
+                      {new Date(record.timestamp).toLocaleTimeString('zh-CN', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.recordInfo}>
-                  <Text style={styles.recordAmount}>{record.amount}ml</Text>
-                  <Text style={styles.recordTime}>
-                    {new Date(record.timestamp).toLocaleTimeString('zh-CN', {
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </Text>
-                </View>
-              </View>
-            ))}
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyRecords}>
+              <Text style={styles.emptyText}>今天还没有饮水记录</Text>
+              <Text style={styles.emptySubtext}>点击上方按钮开始记录吧！</Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+      
+      {/* 自定义添加Modal */}
+      <Modal
+        visible={showCustomModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={handleCustomCancel}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>自定义添加</Text>
+            <Text style={styles.modalSubtitle}>请输入饮水量 (ml)</Text>
+            
+            <TextInput
+              style={styles.modalInput}
+              value={customAmount}
+              onChangeText={setCustomAmount}
+              placeholder="例如: 350"
+              placeholderTextColor={COLORS.textSecondary}
+              keyboardType="numeric"
+              maxLength={4}
+              autoFocus={true}
+            />
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={handleCustomCancel}
+              >
+                <Text style={styles.cancelButtonText}>取消</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={handleCustomSubmit}
+              >
+                <LinearGradient
+                  colors={[COLORS.primary, COLORS.secondary]}
+                  style={styles.confirmButtonGradient}
+                >
+                  <Text style={styles.confirmButtonText}>确定</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           </View>
-        ) : (
-          <View style={styles.emptyRecords}>
-            <Text style={styles.emptyText}>今天还没有饮水记录</Text>
-            <Text style={styles.emptySubtext}>点击上方按钮开始记录吧！</Text>
-          </View>
-        )}
-      </View>
-    </ScrollView>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -189,66 +261,43 @@ const styles = StyleSheet.create({
   },
   progressSection: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 20,
     backgroundColor: COLORS.surface,
     marginTop: -20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
   },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    paddingHorizontal: 20,
-    marginTop: 20,
-  },
-  statCard: {
-    alignItems: 'center',
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingVertical: 15,
-    borderRadius: SIZES.borderRadius,
-    marginHorizontal: 5,
-  },
-  statCardValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  statCardLabel: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginTop: 4,
-  },
   quickAddSection: {
     padding: SIZES.padding,
     backgroundColor: COLORS.surface,
-    marginTop: 10,
+    marginTop: -10,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: COLORS.text,
-    marginBottom: 15,
+    marginBottom: 12,
   },
   quickAddGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    marginHorizontal: -4,
   },
   quickAddButton: {
-    width: (width - SIZES.padding * 2 - 10) / 2,
-    marginBottom: 10,
+    width: (width - SIZES.padding * 2 - 16) / 3,
+    marginBottom: 8,
+    marginHorizontal: 4,
     borderRadius: SIZES.borderRadius,
     overflow: 'hidden',
   },
   quickAddGradient: {
-    paddingVertical: 15,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   quickAddText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: COLORS.surface,
   },
@@ -308,5 +357,78 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textSecondary,
     opacity: 0.7,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: COLORS.surface,
+    padding: SIZES.padding,
+    borderRadius: SIZES.borderRadius,
+    width: '80%',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalInput: {
+    height: 50,
+    borderColor: COLORS.primary,
+    borderWidth: 2,
+    borderRadius: SIZES.borderRadius,
+    marginBottom: 20,
+    paddingHorizontal: 15,
+    fontSize: 18,
+    textAlign: 'center',
+    color: COLORS.text,
+    backgroundColor: COLORS.background,
+    width: '100%',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    marginHorizontal: 5,
+    borderRadius: SIZES.borderRadius,
+    overflow: 'hidden',
+  },
+  cancelButton: {
+    backgroundColor: COLORS.textSecondary,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.surface,
+    textAlign: 'center',
+    paddingVertical: 12,
+  },
+  confirmButton: {
+    overflow: 'hidden',
+  },
+  confirmButtonGradient: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.surface,
   },
 }); 
