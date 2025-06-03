@@ -16,6 +16,8 @@ import { COLORS, SIZES, QUICK_ADD_OPTIONS, DEFAULT_DAILY_GOAL } from '../constan
 import { StorageUtils } from '../utils/storage';
 import { NotificationUtils } from '../utils/notifications';
 import WaterBallProgress from '../components/WaterBallProgress';
+import CustomAlert from '../utils/CustomAlert';
+import { useCustomAlert } from '../utils/useCustomAlert';
 
 const { width } = Dimensions.get('window');
 
@@ -26,6 +28,9 @@ export default function HomeScreen() {
   const [quickAddOptions, setQuickAddOptions] = useState(QUICK_ADD_OPTIONS);
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [customAmount, setCustomAmount] = useState('');
+  
+  // 使用自定义Alert hook
+  const { alertVisible, alertConfig, showAlert } = useCustomAlert();
 
   // 加载数据
   const loadData = async () => {
@@ -38,6 +43,14 @@ export default function HomeScreen() {
       
       const total = records.reduce((sum, record) => sum + record.amount, 0);
       setTodayAmount(total);
+
+      // 加载快捷添加选项
+      const customOptions = await StorageUtils.getQuickAddOptions();
+      if (customOptions && customOptions.length > 0) {
+        setQuickAddOptions(customOptions);
+      } else {
+        setQuickAddOptions(QUICK_ADD_OPTIONS);
+      }
     } catch (error) {
       console.error('加载数据失败:', error);
     }
@@ -69,12 +82,12 @@ export default function HomeScreen() {
       const newTotal = todayAmount + amount;
       if (newTotal >= dailyGoal && todayAmount < dailyGoal) {
         await NotificationUtils.sendGoalAchievedNotification(newTotal, dailyGoal);
-        Alert.alert('🎉 恭喜！', '今日饮水目标已达成！', [{ text: '太棒了！' }]);
+        showAlert('🎉 恭喜！', '今日饮水目标已达成！', 'success', { confirmText: '太棒了！' });
       }
       
     } catch (error) {
       console.error('添加记录失败:', error);
-      Alert.alert('错误', '添加记录失败，请重试');
+      showAlert('错误', '添加记录失败，请重试', 'error');
     }
   };
 
@@ -90,7 +103,7 @@ export default function HomeScreen() {
       setShowCustomModal(false);
       setCustomAmount('');
     } else {
-      Alert.alert('提示', '请输入有效的饮水量 (1-9999ml)');
+      showAlert('提示', '请输入有效的饮水量 (1-9999ml)', 'warning');
     }
   };
 
@@ -233,6 +246,19 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
+      
+      {/* 自定义Alert */}
+      <CustomAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+        confirmText={alertConfig.confirmText}
+        cancelText={alertConfig.cancelText}
+        showCancel={alertConfig.showCancel}
+      />
     </>
   );
 }
@@ -281,7 +307,7 @@ const styles = StyleSheet.create({
   quickAddGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     marginHorizontal: -4,
   },
   quickAddButton: {

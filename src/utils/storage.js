@@ -97,5 +97,15 @@ export const StorageUtils = {
   // 获取通知设置
   async getNotificationSettings() {
     return await this.getItem(STORAGE_KEYS.NOTIFICATION_SETTINGS);
+  },
+
+  // 保存快捷添加选项
+  async saveQuickAddOptions(options) {
+    await this.setItem(STORAGE_KEYS.QUICK_ADD_OPTIONS, options);
+  },
+
+  // 获取快捷添加选项
+  async getQuickAddOptions() {
+    return await this.getItem(STORAGE_KEYS.QUICK_ADD_OPTIONS);
   }
 }; 
