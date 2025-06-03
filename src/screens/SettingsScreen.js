@@ -15,6 +15,7 @@ import { StorageUtils } from '../utils/storage';
 import { NotificationUtils } from '../utils/notifications';
 import CustomAlert from '../utils/CustomAlert';
 import { useCustomAlert } from '../utils/useCustomAlert';
+import { STORAGE_KEYS } from '../constants';
 
 export default function SettingsScreen() {
   const [dailyGoal, setDailyGoal] = useState(DEFAULT_DAILY_GOAL.toString());
@@ -304,12 +305,31 @@ export default function SettingsScreen() {
       '这将删除所有饮水记录和设置，此操作不可恢复。',
       async () => {
         try {
-          await StorageUtils.removeItem('water_records');
-          await StorageUtils.removeItem('daily_goal');
-          await StorageUtils.removeItem('notification_settings');
+          console.log('🗑️ [SettingsScreen] 开始清除所有数据...');
+          
+          // 使用正确的存储键常量
+          await StorageUtils.removeItem(STORAGE_KEYS.WATER_RECORDS);
+          console.log('🗑️ [SettingsScreen] 已清除饮水记录');
+          
+          await StorageUtils.removeItem(STORAGE_KEYS.DAILY_GOAL);
+          console.log('🗑️ [SettingsScreen] 已清除每日目标');
+          
+          await StorageUtils.removeItem(STORAGE_KEYS.NOTIFICATION_SETTINGS);
+          console.log('🗑️ [SettingsScreen] 已清除通知设置');
+          
+          await StorageUtils.removeItem(STORAGE_KEYS.QUICK_ADD_OPTIONS);
+          console.log('🗑️ [SettingsScreen] 已清除快捷添加选项');
+          
+          await StorageUtils.removeItem(STORAGE_KEYS.USER_PROFILE);
+          console.log('🗑️ [SettingsScreen] 已清除用户配置');
+          
+          console.log('🗑️ [SettingsScreen] 所有数据清除完成');
           showAlert('成功', '所有数据已清除', 'success');
-          loadSettings();
+          
+          // 重新加载设置
+          await loadSettings();
         } catch (error) {
+          console.error('🗑️ [SettingsScreen] 清除数据失败:', error);
           showAlert('错误', '清除数据失败', 'error');
         }
       },

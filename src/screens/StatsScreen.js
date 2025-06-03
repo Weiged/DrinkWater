@@ -43,10 +43,22 @@ export default function StatsScreen() {
   // 加载数据
   const loadData = async () => {
     try {
-      const goal = await StorageUtils.getDailyGoal();
-      if (goal) setDailyGoal(goal);
+      console.log('📊 [StatsScreen] 开始加载统计数据...');
+      
+      let goal = await StorageUtils.getDailyGoal();
+      if (goal) {
+        console.log(`📊 [StatsScreen] 获取每日目标: ${goal}ml`);
+        setDailyGoal(goal);
+      } else {
+        // 如果没有设置目标，使用默认值
+        goal = DEFAULT_DAILY_GOAL;
+        console.log(`📊 [StatsScreen] 使用默认每日目标: ${goal}ml`);
+        setDailyGoal(goal);
+      }
 
       const weekRecords = await StorageUtils.getWeekWaterRecords();
+      console.log(`📊 [StatsScreen] 获取本周记录: ${weekRecords.length} 条`);
+      
       const weekDates = getWeekDates();
       
       // 按日期分组统计
@@ -68,11 +80,18 @@ export default function StatsScreen() {
 
       setWeekData(dailyData);
 
-      // 计算统计数据
+      // 计算统计数据 - 确保goal是一个有效的数字
+      const validGoal = Number(goal) || DEFAULT_DAILY_GOAL;
       const totalAmount = dailyData.reduce((sum, day) => sum + day.amount, 0);
-      const completedDays = dailyData.filter(day => day.amount >= goal).length;
+      const completedDays = dailyData.filter(day => {
+        const completed = day.amount >= validGoal;
+        console.log(`📊 [StatsScreen] ${day.day}: ${day.amount}ml ${completed ? '✅' : '❌'} (目标: ${validGoal}ml)`);
+        return completed;
+      }).length;
       const averageAmount = Math.round(totalAmount / 7);
       const completionRate = Math.round((completedDays / 7) * 100);
+
+      console.log(`📊 [StatsScreen] 统计结果: 总量=${totalAmount}ml, 完成天数=${completedDays}天, 日均=${averageAmount}ml, 完成率=${completionRate}%`);
 
       setWeeklyStats({
         totalAmount,
@@ -82,13 +101,31 @@ export default function StatsScreen() {
       });
 
     } catch (error) {
-      console.error('加载统计数据失败:', error);
+      console.error('📊 [StatsScreen] 加载统计数据失败:', error);
     }
   };
 
   useFocusEffect(
     useCallback(() => {
-      loadData();
+      console.log('📊 [StatsScreen] 页面获取焦点，开始加载数据');
+      // 强制重新设置初始状态
+      setWeeklyStats({
+        totalAmount: 0,
+        averageAmount: 0,
+        completedDays: 0,
+        completionRate: 0
+      });
+      setWeekData([]);
+      
+      // 稍微延迟执行，确保状态重置完成
+      const timer = setTimeout(() => {
+        loadData();
+      }, 100);
+      
+      return () => {
+        console.log('📊 [StatsScreen] 页面失去焦点');
+        clearTimeout(timer);
+      };
     }, [])
   );
 
