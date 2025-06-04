@@ -84,6 +84,9 @@ export default function HomeScreen() {
         showAlert('🎉 恭喜！', '今日饮水目标已达成！', 'success', { confirmText: '太棒了！' });
       }
       
+      // 喝水后重新设置提醒（从当前时间开始计算）
+      await NotificationUtils.resetReminderAfterDrinking();
+      
     } catch (error) {
       console.error('添加记录失败:', error);
       showAlert('错误', '添加记录失败，请重试', 'error');

@@ -1,14 +1,15 @@
 export const COLORS = {
   primary: '#4FC3F7',
   secondary: '#29B6F6',
-  accent: '#81C784',
+  accent: '#FF9800',
   background: '#F5F5F5',
   surface: '#FFFFFF',
-  text: '#212121',
+  text: '#333333',
   textSecondary: '#757575',
   success: '#4CAF50',
-  warning: '#FF9800',
   error: '#F44336',
+  warning: '#FF9800',
+  info: '#2196F3',
   water: '#2196F3',
   gradient: ['#4FC3F7', '#29B6F6']
 };

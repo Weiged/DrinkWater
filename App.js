@@ -41,6 +41,8 @@ export default function App() {
     const initializeApp = async () => {
       try {
         await NotificationUtils.requestPermissions();
+        // 检查并更新今日提醒状态
+        await NotificationUtils.updateTodayReminders();
       } catch (error) {
         console.error('初始化应用失败:', error);
       }

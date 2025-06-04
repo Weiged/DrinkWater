@@ -45,12 +45,28 @@ export default function SettingsScreen() {
       if (goal) setDailyGoal(goal.toString());
 
       const notificationSettings = await StorageUtils.getNotificationSettings();
+      console.log('🔧 [SettingsScreen] 加载通知设置:', notificationSettings);
+      
       if (notificationSettings) {
+        console.log('🔧 [SettingsScreen] 设置通知状态为:', notificationSettings.enabled || false);
         setNotificationEnabled(notificationSettings.enabled || false);
         setNotificationInterval(notificationSettings.interval || 60);
-        setSmartReminder(notificationSettings.smart || true);
+        setSmartReminder(notificationSettings.smart !== undefined ? notificationSettings.smart : true);
         setReminderStartHour(notificationSettings.startHour || 7);
         setReminderEndHour(notificationSettings.endHour || 22);
+        
+        // 如果通知已启用，检查今日目标状态
+        if (notificationSettings.enabled) {
+          console.log('🔧 [SettingsScreen] 通知已启用，检查今日目标状态');
+          await checkGoalStatusAndSetReminder('load_settings', { showAlert: false });
+        }
+      } else {
+        console.log('🔧 [SettingsScreen] 未找到通知设置，使用默认值');
+        setNotificationEnabled(false);
+        setNotificationInterval(60);
+        setSmartReminder(true);
+        setReminderStartHour(7);
+        setReminderEndHour(22);
       }
 
       // 加载快捷添加选项
@@ -75,6 +91,13 @@ export default function SettingsScreen() {
       }
       
       await StorageUtils.saveDailyGoal(goal);
+      
+      // 如果通知已开启，检查新目标下的通知状态
+      if (notificationEnabled) {
+        console.log('🔧 [SettingsScreen] 目标已更新，重新检查通知状态');
+        await checkGoalStatusAndSetReminder('update_goal', { showAlert: false });
+      }
+      
       showAlert('成功', '每日目标已保存', 'success');
     } catch (error) {
       console.error('保存目标失败:', error);
@@ -85,32 +108,59 @@ export default function SettingsScreen() {
   // 切换通知开关
   const toggleNotification = async (enabled) => {
     try {
-      setNotificationEnabled(enabled);
+      console.log('🔧 [SettingsScreen] 切换通知开关:', enabled);
       
       if (enabled) {
         const hasPermission = await NotificationUtils.requestPermissions();
         if (!hasPermission) {
+          console.log('🔧 [SettingsScreen] 权限被拒绝，保存禁用状态');
           setNotificationEnabled(false);
+          // 直接保存禁用状态，不依赖state
+          const settings = {
+            enabled: false,
+            interval: notificationInterval,
+            smart: smartReminder,
+            startHour: reminderStartHour,
+            endHour: reminderEndHour
+          };
+          console.log('🔧 [SettingsScreen] 保存设置:', settings);
+          await StorageUtils.saveNotificationSettings(settings);
           showAlert('权限被拒绝', '请在设置中开启通知权限', 'warning');
           return;
         }
         
-        // 设置提醒
-        if (smartReminder) {
-          await NotificationUtils.scheduleSmartReminder(
-            notificationInterval,
-            reminderStartHour,
-            reminderEndHour
-          );
-        } else {
-          await NotificationUtils.scheduleWaterReminder(notificationInterval);
-        }
+        console.log('🔧 [SettingsScreen] 权限获取成功，检查今日目标状态');
+        setNotificationEnabled(true);
+        
+        // 使用通用方法检查目标状态并设置提醒
+        await checkGoalStatusAndSetReminder('enable_notification');
+        
+        // 保存启用状态
+        const settings = {
+          enabled: true,
+          interval: notificationInterval,
+          smart: smartReminder,
+          startHour: reminderStartHour,
+          endHour: reminderEndHour
+        };
+        console.log('🔧 [SettingsScreen] 保存启用设置:', settings);
+        await StorageUtils.saveNotificationSettings(settings);
       } else {
+        console.log('🔧 [SettingsScreen] 禁用通知');
+        setNotificationEnabled(false);
         await NotificationUtils.cancelAllReminders();
+        
+        // 直接保存禁用状态
+        const settings = {
+          enabled: false,
+          interval: notificationInterval,
+          smart: smartReminder,
+          startHour: reminderStartHour,
+          endHour: reminderEndHour
+        };
+        console.log('🔧 [SettingsScreen] 保存禁用设置:', settings);
+        await StorageUtils.saveNotificationSettings(settings);
       }
-      
-      // 保存设置
-      await saveNotificationSettings();
     } catch (error) {
       console.error('设置通知失败:', error);
       showAlert('错误', '设置失败，请重试', 'error');
@@ -123,15 +173,10 @@ export default function SettingsScreen() {
       setNotificationInterval(interval);
       
       if (notificationEnabled) {
-        if (smartReminder) {
-          await NotificationUtils.scheduleSmartReminder(
-            interval,
-            reminderStartHour,
-            reminderEndHour
-          );
-        } else {
-          await NotificationUtils.scheduleWaterReminder(interval);
-        }
+        console.log('🔧 [SettingsScreen] 更新通知间隔:', interval);
+        
+        // 使用通用方法检查目标状态并设置提醒
+        await checkGoalStatusAndSetReminder('update_interval', { showAlert: false });
       }
       
       await saveNotificationSettings();
@@ -146,20 +191,18 @@ export default function SettingsScreen() {
       setSmartReminder(enabled);
       
       if (notificationEnabled) {
-        if (enabled) {
-          await NotificationUtils.scheduleSmartReminder(
-            notificationInterval,
-            reminderStartHour,
-            reminderEndHour
-          );
-        } else {
-          await NotificationUtils.scheduleWaterReminder(notificationInterval);
-        }
+        console.log('🔧 [SettingsScreen] 切换智能提醒模式:', enabled);
+        
+        // 使用通用方法检查目标状态并设置提醒
+        await checkGoalStatusAndSetReminder('toggle_smart');
+      } else {
+        console.log('🔧 [SettingsScreen] 通知未开启，仅保存智能提醒设置');
       }
       
       await saveNotificationSettings();
     } catch (error) {
       console.error('切换智能提醒失败:', error);
+      showAlert('错误', '切换失败，请重试', 'error');
     }
   };
 
@@ -179,15 +222,15 @@ export default function SettingsScreen() {
   const updateSmartReminderTime = async (startHour, endHour) => {
     try {
       if (notificationEnabled && smartReminder) {
-        await NotificationUtils.scheduleSmartReminder(
-          notificationInterval,
-          startHour,
-          endHour
-        );
+        console.log('🔧 [SettingsScreen] 更新智能提醒时间范围:', { startHour, endHour });
+        
+        // 使用通用方法检查目标状态并设置提醒
+        await checkGoalStatusAndSetReminder('update_time_range');
         await saveNotificationSettings();
       }
     } catch (error) {
       console.error('更新智能提醒时间失败:', error);
+      showAlert('错误', '更新失败，请重试', 'error');
     }
   };
 
@@ -323,7 +366,12 @@ export default function SettingsScreen() {
         try {
           console.log('🗑️ [SettingsScreen] 开始清除所有数据...');
           
-          // 使用正确的存储键常量
+          // 首先取消所有通知
+          console.log('🗑️ [SettingsScreen] 取消所有通知...');
+          await NotificationUtils.cancelAllReminders();
+          console.log('🗑️ [SettingsScreen] 已取消所有通知');
+          
+          // 清除存储的数据
           await StorageUtils.removeItem(STORAGE_KEYS.WATER_RECORDS);
           console.log('🗑️ [SettingsScreen] 已清除饮水记录');
           
@@ -351,6 +399,98 @@ export default function SettingsScreen() {
       },
       { confirmText: '确认', cancelText: '取消' }
     );
+  };
+
+  // 检查目标状态并决定是否设置提醒的通用方法
+  const checkGoalStatusAndSetReminder = async (action = 'update', options = {}) => {
+    try {
+      console.log(`🔧 [SettingsScreen] 检查目标状态并设置提醒: ${action}`);
+      
+      // 检查今日目标是否已完成
+      const todayRecords = await StorageUtils.getTodayWaterRecords();
+      const dailyGoal = await StorageUtils.getDailyGoal() || 2000;
+      const todayAmount = todayRecords.reduce((sum, record) => sum + record.amount, 0);
+      
+      console.log(`🔧 [SettingsScreen] 当前饮水状态: ${todayAmount}ml / ${dailyGoal}ml`);
+      
+      // 获取最后一次喝水记录的时间
+      const lastDrinkTime = await NotificationUtils.getLastDrinkTime();
+      
+      const goalCompleted = todayAmount >= dailyGoal;
+      
+      if (goalCompleted) {
+        console.log('🔧 [SettingsScreen] 目标已完成，取消现有提醒');
+        await NotificationUtils.cancelAllReminders();
+        
+        // 根据不同的操作显示相应的消息
+        const messages = {
+          'enable_notification': '今日目标已完成，明天会自动开始提醒',
+          'toggle_smart': '今日目标已完成，明天会使用新的提醒模式',
+          'update_interval': '今日目标已完成，新间隔明天生效',
+          'update_time_range': '今日目标已完成，明天会使用新的时间范围',
+          'update_goal': '新目标已达成，已取消今日剩余提醒',
+          'load_settings': null // 不显示消息
+        };
+        
+        const message = messages[action];
+        if (message && options.showAlert !== false) {
+          const titles = {
+            'enable_notification': '通知已开启',
+            'toggle_smart': '智能提醒已切换',
+            'update_interval': '间隔已更新',
+            'update_time_range': '时间范围已更新',
+            'update_goal': '目标已更新'
+          };
+          showAlert(titles[action] || '设置已更新', message, 'success');
+        }
+        
+        return { goalCompleted: true, shouldSetReminder: false };
+      } else {
+        console.log('🔧 [SettingsScreen] 目标未完成，设置相应提醒');
+        
+        // 根据当前设置决定设置哪种提醒，优先使用最后喝水时间作为基础时间
+        if (smartReminder) {
+          await NotificationUtils.scheduleSmartReminder(
+            notificationInterval,
+            reminderStartHour,
+            reminderEndHour,
+            false, // resetFromNow
+            lastDrinkTime // baseTime：最后喝水时间
+          );
+        } else {
+          await NotificationUtils.scheduleWaterReminder(
+            notificationInterval,
+            lastDrinkTime // baseTime：最后喝水时间
+          );
+        }
+        
+        // 显示成功消息
+        const successMessages = {
+          'enable_notification': lastDrinkTime ? '喝水提醒已设置成功（基于最后喝水时间）' : '喝水提醒已设置成功',
+          'toggle_smart': smartReminder ? '已切换为智能提醒模式' : '已切换为定时提醒模式',
+          'update_interval': '新的提醒间隔已应用',
+          'update_time_range': '智能提醒时间范围已应用',
+          'update_goal': '目标未达成，提醒已重新设置'
+        };
+        
+        const message = successMessages[action];
+        if (message && options.showAlert !== false) {
+          const titles = {
+            'enable_notification': '通知已开启',
+            'toggle_smart': smartReminder ? '智能提醒已开启' : '定时提醒已开启',
+            'update_interval': '间隔已更新',
+            'update_time_range': '时间范围已更新',
+            'update_goal': '目标已更新'
+          };
+          showAlert(titles[action] || '设置已更新', message, 'success');
+        }
+        
+        return { goalCompleted: false, shouldSetReminder: true };
+      }
+    } catch (error) {
+      console.error('检查目标状态失败:', error);
+      throw error;
+    }
   };
 
   // 渲染设置项
@@ -592,6 +732,258 @@ export default function SettingsScreen() {
               <Text style={styles.infoSubtext}>帮助你养成健康的饮水习惯</Text>
             </View>
           </View>
+
+          {/* 调试面板 - 仅在开发模式下显示 */}
+          {__DEV__ && (
+            <View style={[styles.section, styles.debugSection]}>
+              <Text style={[styles.sectionTitle, styles.debugTitle]}>🔧 调试工具</Text>
+              <Text style={styles.debugSubtitle}>开发模式专用功能</Text>
+              
+              <View style={styles.debugButtonsContainer}>
+                <TouchableOpacity
+                  style={[styles.debugButton, styles.debugButtonPrimary]}
+                  onPress={async () => {
+                    console.log('🧪 发送测试通知...');
+                    await NotificationUtils.sendTestNotification();
+                    showAlert('调试', '测试通知已发送', 'info');
+                  }}
+                >
+                  <Text style={styles.debugButtonText}>发送测试通知</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.debugButton, styles.debugButtonSecondary]}
+                  onPress={async () => {
+                    console.log('⏰ 设置10秒后的测试通知...');
+                    await NotificationUtils.scheduleTestNotification(10);
+                    showAlert('调试', '10秒后会收到测试通知', 'info');
+                  }}
+                >
+                  <Text style={styles.debugButtonText}>10秒延迟通知</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.debugButton, styles.debugButtonInfo]}
+                  onPress={async () => {
+                    console.log('📋 查看已安排的通知...');
+                    const debugInfo = await NotificationUtils.getNotificationDebugInfo();
+                    showAlert('调试信息', `当前有${debugInfo.length}个已安排的通知，详情请查看控制台`, 'info');
+                  }}
+                >
+                  <Text style={styles.debugButtonText}>查看通知列表</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.debugButton, styles.debugButtonWarning]}
+                  onPress={async () => {
+                    console.log('🔄 重置通知系统...');
+                    await NotificationUtils.resetNotifications();
+                    showAlert('调试', '通知系统已重置', 'success');
+                  }}
+                >
+                  <Text style={styles.debugButtonText}>重置通知系统</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.debugButton, styles.debugButtonSecondary]}
+                  onPress={async () => {
+                    console.log('🔐 检查通知权限...');
+                    const hasPermission = await NotificationUtils.checkPermissionStatus();
+                    showAlert('权限状态', hasPermission ? '通知权限正常' : '通知权限未授予', hasPermission ? 'success' : 'warning');
+                  }}
+                >
+                  <Text style={styles.debugButtonText}>检查权限状态</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.debugButton, styles.debugButtonInfo]}
+                  onPress={async () => {
+                    console.log('🧪 模拟智能提醒（当前时间）...');
+                    await NotificationUtils.debugSmartReminder();
+                    showAlert('调试', '智能提醒模拟完成，详情请查看控制台', 'info');
+                  }}
+                >
+                  <Text style={styles.debugButtonText}>模拟智能提醒</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.debugButton, styles.debugButtonPrimary]}
+                  onPress={() => {
+                    NotificationUtils.enableDebugMode();
+                    showAlert('调试', '已开启详细日志模式', 'info');
+                  }}
+                >
+                  <Text style={styles.debugButtonText}>开启详细日志</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.debugButton, styles.debugButtonSecondary]}
+                  onPress={() => {
+                    NotificationUtils.disableDebugMode();
+                    showAlert('调试', '已关闭详细日志模式', 'info');
+                  }}
+                >
+                  <Text style={styles.debugButtonText}>关闭详细日志</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.debugButton, styles.debugButtonWarning]}
+                  onPress={async () => {
+                    console.log('🔧 检查并修复异常通知...');
+                    const fixedCount = await NotificationUtils.fixBrokenNotifications();
+                    showAlert('修复完成', `已清理${fixedCount}个异常通知`, fixedCount > 0 ? 'success' : 'info');
+                  }}
+                >
+                  <Text style={styles.debugButtonText}>修复异常通知</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.debugButton, styles.debugButtonInfo]}
+                  onPress={async () => {
+                    console.log('🎯 测试目标完成时开启通知...');
+                    
+                    // 临时添加一条超过目标的记录来模拟目标完成
+                    const testRecord = {
+                      id: `test_${Date.now()}`,
+                      amount: 3000, // 超过默认目标2000ml
+                      timestamp: new Date().toISOString(),
+                      date: new Date().toDateString()
+                    };
+                    
+                    await StorageUtils.saveWaterRecord(testRecord);
+                    console.log('📊 已添加测试记录，模拟目标完成状态');
+                    
+                    // 关闭再开启通知开关来测试
+                    setNotificationEnabled(false);
+                    setTimeout(async () => {
+                      await toggleNotification(true);
+                      
+                      // 清理测试记录
+                      const records = await StorageUtils.getWaterRecords();
+                      const filteredRecords = records.filter(r => r.id !== testRecord.id);
+                      await StorageUtils.setItem('water_records', filteredRecords);
+                      console.log('🧹 已清理测试记录');
+                    }, 500);
+                  }}
+                >
+                  <Text style={styles.debugButtonText}>测试目标完成</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.debugButton, styles.debugButtonSecondary]}
+                  onPress={async () => {
+                    console.log('🗑️ 手动取消今日剩余提醒...');
+                    NotificationUtils.enableDebugMode();
+                    await NotificationUtils.cancelTodayReminders();
+                    showAlert('操作完成', '已尝试取消今日剩余提醒，详情请查看控制台', 'info');
+                  }}
+                >
+                  <Text style={styles.debugButtonText}>取消今日提醒</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.debugButton, styles.debugButtonPrimary]}
+                  onPress={async () => {
+                    console.log('🥤 测试喝水后重置提醒功能...');
+                    NotificationUtils.enableDebugMode();
+                    await NotificationUtils.resetReminderAfterDrinking();
+                    showAlert('测试完成', '喝水后重置提醒测试已执行，请查看控制台详情', 'info');
+                  }}
+                >
+                  <Text style={styles.debugButtonText}>测试喝水重置</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.debugButton, styles.debugButtonInfo]}
+                  onPress={async () => {
+                    console.log('🧠 测试智能提醒开关（目标完成）...');
+                    
+                    // 临时添加测试记录模拟目标完成
+                    const testRecord = {
+                      id: `test_smart_${Date.now()}`,
+                      amount: 3000,
+                      timestamp: new Date().toISOString(),
+                      date: new Date().toDateString()
+                    };
+                    
+                    await StorageUtils.saveWaterRecord(testRecord);
+                    console.log('📊 已添加测试记录，模拟目标完成状态');
+                    
+                    // 切换智能提醒开关测试
+                    const originalSmart = smartReminder;
+                    await toggleSmartReminder(!originalSmart);
+                    
+                    setTimeout(async () => {
+                      // 恢复原来的智能提醒状态
+                      await toggleSmartReminder(originalSmart);
+                      
+                      // 清理测试记录
+                      const records = await StorageUtils.getWaterRecords();
+                      const filteredRecords = records.filter(r => r.id !== testRecord.id);
+                      await StorageUtils.setItem('water_records', filteredRecords);
+                      console.log('🧹 已清理测试记录并恢复原设置');
+                    }, 1000);
+                  }}
+                >
+                  <Text style={styles.debugButtonText}>测试智能开关</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.debugButton, styles.debugButtonWarning]}
+                  onPress={async () => {
+                    console.log('🎯 测试更新目标后的通知处理...');
+                    
+                    // 保存当前目标
+                    const originalGoal = dailyGoal;
+                    
+                    // 临时设置一个很高的目标，让当前状态看起来已完成
+                    setDailyGoal('500'); // 设置很低的目标，这样当前饮水量应该已经达成
+                    
+                    setTimeout(async () => {
+                      // 触发保存目标
+                      await saveDailyGoal();
+                      
+                      setTimeout(() => {
+                        // 恢复原来的目标
+                        setDailyGoal(originalGoal);
+                        console.log('🔄 已恢复原目标设置');
+                      }, 1000);
+                    }, 500);
+                  }}
+                >
+                  <Text style={styles.debugButtonText}>测试目标更新</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.debugButton, styles.debugButtonInfo]}
+                  onPress={async () => {
+                    console.log('🕐 测试基于最后喝水时间设置提醒...');
+                    
+                    // 获取当前的设置状态
+                    const todayRecords = await StorageUtils.getTodayWaterRecords();
+                    if (todayRecords.length === 0) {
+                      showAlert('提示', '今日还没有饮水记录，将基于当前时间设置提醒', 'info');
+                    } else {
+                      const lastRecord = todayRecords[todayRecords.length - 1];
+                      const lastDrinkTime = new Date(lastRecord.timestamp);
+                      showAlert('测试信息', `将基于最后喝水时间 ${lastDrinkTime.toLocaleString('zh-CN')} 重新设置提醒`, 'info');
+                    }
+                    
+                    // 执行测试
+                    NotificationUtils.enableDebugMode();
+                    await checkGoalStatusAndSetReminder('update_interval', { showAlert: false });
+                    console.log('✅ 基于最后喝水时间的提醒设置测试完成');
+                  }}
+                >
+                  <Text style={styles.debugButtonText}>测试基于最后喝水时间</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <Text style={styles.debugTip}>
+                💡 提示：这些功能仅在开发模式下可见，正式版本中不会显示
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
       
@@ -1061,6 +1453,55 @@ const styles = StyleSheet.create({
   timeUpdateButtonText: {
     color: COLORS.surface,
     fontWeight: '600',
+    textAlign: 'center',
+  },
+  debugSection: {
+    padding: SIZES.padding,
+  },
+  debugTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 10,
+  },
+  debugSubtitle: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    marginBottom: 20,
+  },
+  debugButtonsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 15,
+  },
+  debugButton: {
+    backgroundColor: COLORS.background,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: SIZES.borderRadius,
+    marginRight: 10,
+    marginBottom: 10,
+  },
+  debugButtonPrimary: {
+    backgroundColor: COLORS.primary,
+  },
+  debugButtonSecondary: {
+    backgroundColor: COLORS.secondary,
+  },
+  debugButtonInfo: {
+    backgroundColor: COLORS.info,
+  },
+  debugButtonWarning: {
+    backgroundColor: COLORS.warning,
+  },
+  debugButtonText: {
+    color: COLORS.surface,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  debugTip: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
     textAlign: 'center',
   },
 }); 
