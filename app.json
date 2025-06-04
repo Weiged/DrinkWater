@@ -4,8 +4,10 @@
     "slug": "drink-water-app",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/tropical-icon.png",
     "userInterfaceStyle": "light",
     "splash": {
+      "image": "./assets/tropical-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#4FC3F7"
     },
@@ -14,10 +16,13 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.drinkwater.app"
+      "bundleIdentifier": "com.drinkwater.app",
+      "icon": "./assets/tropical-icon.png"
     },
     "android": {
+      "icon": "./assets/tropical-icon.png",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/tropical-icon.png",
         "backgroundColor": "#4FC3F7"
       },
       "package": "com.drinkwater.app",
@@ -27,14 +32,15 @@
       ]
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/tropical-icon.png"
     },
     "plugins": [
       [
         "expo-notifications",
         {
           "color": "#4FC3F7"
-    }
+        }
       ]
     ]
   }
