@@ -113,16 +113,16 @@ export default function HomeScreen() {
 
   return (
     <>
-      {/* 渐变背景头部 */}
-      <LinearGradient
-        colors={[COLORS.primary, COLORS.secondary]}
-        style={styles.header}
-      >
-        <Text style={styles.headerTitle}>喝水提醒</Text>
-        <Text style={styles.headerSubtitle}>今天已喝 {todayAmount}ml</Text>
-      </LinearGradient>
-
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* 渐变背景头部 */}
+        <LinearGradient
+          colors={[COLORS.primary, COLORS.secondary]}
+          style={styles.header}
+        >
+          <Text style={styles.headerTitle}>喝水提醒</Text>
+          <Text style={styles.headerSubtitle}>今天已喝 {todayAmount}ml</Text>
+        </LinearGradient>
+
         {/* 进度显示 */}
         <View style={styles.progressSection}>
           <WaterBallProgress
