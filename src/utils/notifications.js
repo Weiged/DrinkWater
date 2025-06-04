@@ -8,6 +8,34 @@ Notifications.setNotificationHandler({
     const now = new Date();
     console.log(`收到通知，类型: ${notificationType}，时间: ${now.toLocaleTimeString()}`);
     
+    // 检查当天饮水量是否已达目标
+    if (notificationType === 'water_reminder' || notificationType === 'smart_reminder') {
+      try {
+        // 动态导入StorageUtils避免循环依赖
+        const { StorageUtils } = await import('./storage');
+        
+        // 获取当天饮水记录和目标
+        const todayRecords = await StorageUtils.getTodayWaterRecords();
+        const dailyGoal = await StorageUtils.getDailyGoal() || 2000;
+        const todayAmount = todayRecords.reduce((sum, record) => sum + record.amount, 0);
+        
+        console.log(`当天已喝: ${todayAmount}ml, 目标: ${dailyGoal}ml`);
+        
+        // 如果已达目标，不显示提醒
+        if (todayAmount >= dailyGoal) {
+          console.log('今日目标已达成，跳过提醒');
+          return {
+            shouldShowBanner: false,
+            shouldShowList: false,
+            shouldPlaySound: false,
+            shouldSetBadge: false,
+          };
+        }
+      } catch (error) {
+        console.error('检查饮水量失败:', error);
+      }
+    }
+    
     // 根据通知类型决定显示方式
     let shouldShowInList = false;
     if (notificationType === 'water_reminder' || notificationType === 'smart_reminder') {
