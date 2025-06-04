@@ -215,7 +215,6 @@ export default function StatsScreen() {
               <Text style={[styles.dayName, day.isToday && styles.todayText]}>
                 {day.day}
               </Text>
-              <Text style={styles.dayDate}>{day.dayNumber}日</Text>
             </View>
             
             <View style={styles.dailyProgress}>
