@@ -134,7 +134,7 @@ export default function WaterBallProgress({
         
         {/* 进度文字（在球内） */}
         <View style={[styles.progressTextContainer, { width: ballSize, height: ballSize }]}>
-          <Text style={styles.percentageText}>{percentageText}%</Text>
+          <Text style={styles.percentageText}>{`${percentageText} %`}</Text>
           <Text style={styles.amountText}>{currentAmount}ml</Text>
         </View>
       </View>
