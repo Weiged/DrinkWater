@@ -175,6 +175,22 @@ export default function SettingsScreen() {
     await StorageUtils.saveNotificationSettings(settings);
   };
 
+  // 更新智能提醒时间范围
+  const updateSmartReminderTime = async (startHour, endHour) => {
+    try {
+      if (notificationEnabled && smartReminder) {
+        await NotificationUtils.scheduleSmartReminder(
+          notificationInterval,
+          startHour,
+          endHour
+        );
+        await saveNotificationSettings();
+      }
+    } catch (error) {
+      console.error('更新智能提醒时间失败:', error);
+    }
+  };
+
   // 编辑快捷添加选项
   const editQuickAddOption = (option) => {
     setEditingOption(option);
@@ -485,6 +501,12 @@ export default function SettingsScreen() {
                       />
                       <Text style={styles.timeUnit}>:00</Text>
                     </View>
+                    <TouchableOpacity
+                      style={styles.timeUpdateButton}
+                      onPress={() => updateSmartReminderTime(reminderStartHour, reminderEndHour)}
+                    >
+                      <Text style={styles.timeUpdateButtonText}>应用</Text>
+                    </TouchableOpacity>
                   </View>
                 )}
               </>
@@ -1002,5 +1024,17 @@ const styles = StyleSheet.create({
   confirmButtonText: {
     color: COLORS.surface,
     fontWeight: '600',
+  },
+  timeUpdateButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: SIZES.borderRadius,
+    marginLeft: 10,
+  },
+  timeUpdateButtonText: {
+    color: COLORS.surface,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 }); 

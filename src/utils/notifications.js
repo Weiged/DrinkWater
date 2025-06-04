@@ -5,7 +5,8 @@ import { Platform } from 'react-native';
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
     const notificationType = notification.request.content.data?.type;
-    console.log('收到通知，类型:', notificationType);
+    const now = new Date();
+    console.log(`收到通知，类型: ${notificationType}，时间: ${now.toLocaleTimeString()}`);
     
     // 根据通知类型决定显示方式
     let shouldShowInList = false;
@@ -84,6 +85,7 @@ export const NotificationUtils = {
       
       // 设置新的提醒（从现在开始，每隔指定时间提醒一次）
       const trigger = {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
         seconds: intervalMinutes * 60,
         repeats: true,
       };
@@ -109,35 +111,22 @@ export const NotificationUtils = {
     try {
       await this.cancelAllReminders();
       
-      // 计算一天中需要提醒的次数
-      const activeHours = endHour - startHour;
-      const remindersPerDay = Math.floor((activeHours * 60) / intervalMinutes);
+      // 设置简单的间隔提醒
+      const trigger = {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: intervalMinutes * 60,
+        repeats: true,
+      };
       
-      for (let i = 0; i < remindersPerDay; i++) {
-        const reminderTime = new Date();
-        reminderTime.setHours(startHour);
-        reminderTime.setMinutes(i * intervalMinutes);
-        reminderTime.setSeconds(0);
-        
-        // 如果时间已过，设置为明天
-        if (reminderTime <= new Date()) {
-          reminderTime.setDate(reminderTime.getDate() + 1);
-        }
-        
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: '💧 喝水时间到！',
-            body: '别忘了补充水分哦～',
-            sound: 'default',
-            data: { type: 'smart_reminder', index: i },
-          },
-          trigger: {
-            hour: reminderTime.getHours(),
-            minute: reminderTime.getMinutes(),
-            repeats: true,
-          },
-        });
-      }
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '💧 喝水时间到！',
+          body: '别忘了补充水分哦～',
+          sound: 'default',
+          data: { type: 'smart_reminder' },
+        },
+        trigger,
+      });
       
       console.log(`已设置智能提醒：${startHour}:00-${endHour}:00，每${intervalMinutes}分钟一次`);
     } catch (error) {
