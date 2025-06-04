@@ -33,10 +33,10 @@ export const QUICK_ADD_OPTIONS = [
 export const DEFAULT_DAILY_GOAL = 2000; // 毫升
 
 export const NOTIFICATION_INTERVALS = [
-  { id: 1, minutes: 30, label: '30分钟' },
-  { id: 2, minutes: 60, label: '1小时' },
-  { id: 3, minutes: 90, label: '1.5小时' },
-  { id: 4, minutes: 120, label: '2小时' }
+  { id: 1, minutes: 30, label: '30 分钟' },
+  { id: 2, minutes: 60, label: '1 小时' },
+  { id: 3, minutes: 90, label: '1.5 小时' },
+  { id: 4, minutes: 120, label: '2 小时' }
 ];
 
 export const STORAGE_KEYS = {

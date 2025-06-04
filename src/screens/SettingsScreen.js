@@ -408,6 +408,9 @@ export default function SettingsScreen() {
                   onChangeText={setDailyGoal}
                   keyboardType="numeric"
                   placeholder="2000"
+                  selectTextOnFocus={false}
+                  selection={{start: dailyGoal.length, end: dailyGoal.length}}
+                  contextMenuHidden={true}
                 />
                 <Text style={styles.goalUnit}>ml</Text>
                 <TouchableOpacity
@@ -481,6 +484,8 @@ export default function SettingsScreen() {
                         }}
                         keyboardType="numeric"
                         maxLength={2}
+                        selectTextOnFocus={false}
+                        contextMenuHidden={true}
                       />
                       <Text style={styles.timeUnit}>:00</Text>
                     </View>
@@ -498,6 +503,8 @@ export default function SettingsScreen() {
                         }}
                         keyboardType="numeric"
                         maxLength={2}
+                        selectTextOnFocus={false}
+                        contextMenuHidden={true}
                       />
                       <Text style={styles.timeUnit}>:00</Text>
                     </View>
@@ -611,6 +618,8 @@ export default function SettingsScreen() {
               keyboardType="numeric"
               maxLength={4}
               autoFocus={true}
+              selectTextOnFocus={false}
+              contextMenuHidden={true}
             />
             
             <View style={styles.modalButtons}>
@@ -660,6 +669,8 @@ export default function SettingsScreen() {
               keyboardType="numeric"
               maxLength={4}
               autoFocus={true}
+              selectTextOnFocus={false}
+              contextMenuHidden={true}
             />
             
             <View style={styles.modalButtons}>
@@ -783,6 +794,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 16,
     backgroundColor: COLORS.background,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+    lineHeight: 20,
   },
   goalUnit: {
     fontSize: 16,
@@ -805,13 +820,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     marginTop: 10,
   },
-  intervalButton: {
-    paddingHorizontal: 15,
+    intervalButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: SIZES.borderRadius,
     backgroundColor: COLORS.background,
     marginRight: 10,
     marginBottom: 10,
+    minWidth: 74
   },
   activeInterval: {
     backgroundColor: COLORS.primary,
@@ -847,6 +865,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     textAlign: 'center',
     width: 50,
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+    lineHeight: 20,
   },
   timeUnit: {
     fontSize: 16,
@@ -992,6 +1013,11 @@ const styles = StyleSheet.create({
     borderColor: COLORS.background,
     borderRadius: SIZES.borderRadius,
     marginBottom: 20,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+    lineHeight: 20,
+    fontSize: 16,
   },
   modalButtons: {
     flexDirection: 'row',
