@@ -180,7 +180,15 @@ export default function SettingsScreen() {
         await checkGoalStatusAndSetReminder('update_interval', { showAlert: false });
       }
       
-      await saveNotificationSettings();
+      // 立即保存设置，使用新的interval值而不是state
+      const settings = {
+        enabled: notificationEnabled,
+        interval: interval, // 使用参数中的新值
+        smart: smartReminder,
+        startHour: reminderStartHour,
+        endHour: reminderEndHour
+      };
+      await StorageUtils.saveNotificationSettings(settings);
     } catch (error) {
       console.error('更新通知间隔失败:', error);
     }
@@ -200,7 +208,15 @@ export default function SettingsScreen() {
         console.log('🔧 [SettingsScreen] 通知未开启，仅保存智能提醒设置');
       }
       
-      await saveNotificationSettings();
+      // 立即保存设置，使用新的smart值而不是state
+      const settings = {
+        enabled: notificationEnabled,
+        interval: notificationInterval,
+        smart: enabled, // 使用参数中的新值
+        startHour: reminderStartHour,
+        endHour: reminderEndHour
+      };
+      await StorageUtils.saveNotificationSettings(settings);
     } catch (error) {
       console.error('切换智能提醒失败:', error);
       showAlert('错误', '切换失败，请重试', 'error');
@@ -227,7 +243,16 @@ export default function SettingsScreen() {
         
         // 使用通用方法检查目标状态并设置提醒
         await checkGoalStatusAndSetReminder('update_time_range');
-        await saveNotificationSettings();
+        
+        // 立即保存设置，使用新的时间值而不是state
+        const settings = {
+          enabled: notificationEnabled,
+          interval: notificationInterval,
+          smart: smartReminder,
+          startHour: startHour, // 使用参数中的新值
+          endHour: endHour // 使用参数中的新值
+        };
+        await StorageUtils.saveNotificationSettings(settings);
       }
     } catch (error) {
       console.error('更新智能提醒时间失败:', error);
