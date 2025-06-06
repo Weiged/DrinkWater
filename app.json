@@ -2,7 +2,7 @@
   "expo": {
     "name": "喝水提醒",
     "slug": "drink-water-app",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/tropical-icon.png",
     "userInterfaceStyle": "light",
@@ -17,7 +17,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.drinkwater.app",
-      "icon": "./assets/tropical-icon.png"
+      "icon": "./assets/tropical-icon.png",
+      "infoPlist": {
+        "UIBackgroundModes": ["background-processing", "background-fetch"],
+        "BGTaskSchedulerPermittedIdentifiers": ["com.drinkwater.app.refresh"]
+      }
     },
     "android": {
       "icon": "./assets/tropical-icon.png",
@@ -28,7 +32,11 @@
       "package": "com.drinkwater.app",
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.VIBRATE"
+        "android.permission.VIBRATE",
+        "android.permission.WAKE_LOCK",
+        "android.permission.DISABLE_KEYGUARD",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "com.android.alarm.permission.SET_ALARM"
       ]
     },
     "web": {
@@ -39,8 +47,12 @@
       [
         "expo-notifications",
         {
-          "color": "#4FC3F7"
+          "color": "#4FC3F7",
+          "defaultChannel": "water-reminder"
         }
+      ],
+      [
+        "expo-task-manager"
       ]
     ]
   }

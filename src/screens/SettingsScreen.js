@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SIZES, DEFAULT_DAILY_GOAL, NOTIFICATION_INTERVALS, QUICK_ADD_OPTIONS } from '../constants';
 import { StorageUtils } from '../utils/storage';
 import { NotificationUtils } from '../utils/notifications';
+import { BackgroundTaskUtils } from '../utils/backgroundTasks';
 import CustomAlert from '../utils/CustomAlert';
 import { useCustomAlert } from '../utils/useCustomAlert';
 import { STORAGE_KEYS } from '../constants';
@@ -835,6 +836,33 @@ export default function SettingsScreen() {
                   }}
                 >
                   <Text style={styles.debugButtonText}>修复异常通知</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.debugButton, styles.debugButtonInfo]}
+                  onPress={async () => {
+                    console.log('🔧 检查后台任务状态...');
+                    const status = await BackgroundTaskUtils.getBackgroundTaskStatus();
+                    const guidance = BackgroundTaskUtils.getBackgroundNotificationGuidance();
+                    
+                    const message = `后台任务状态: ${status.isRegistered ? '已注册' : '未注册'}\n\n` +
+                      '📖 后台通知指南:\n' + guidance.join('\n');
+                    
+                    showAlert('后台通知帮助', message, 'info');
+                  }}
+                >
+                  <Text style={styles.debugButtonText}>后台通知指南</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.debugButton, styles.debugButtonSecondary]}
+                  onPress={async () => {
+                    console.log('🔧 优化后台通知设置...');
+                    const success = await BackgroundTaskUtils.optimizeNotificationsForBackground();
+                    showAlert('优化完成', success ? '后台通知设置已优化' : '优化失败，请查看控制台', success ? 'success' : 'warning');
+                  }}
+                >
+                  <Text style={styles.debugButtonText}>优化后台通知</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity

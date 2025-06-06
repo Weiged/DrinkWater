@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-// 配置通知处理 - 简化版本，不做智能检查
+// 配置通知处理 - 优化后台支持
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
     const notificationType = notification.request.content.data?.type;
@@ -9,19 +9,36 @@ Notifications.setNotificationHandler({
     console.log(`收到通知，类型: ${notificationType}，时间: ${now.toLocaleTimeString()}`);
     
     // 根据通知类型决定显示方式
-    let shouldShowInList = false;
+    let shouldShowInList = true; // 默认显示在通知列表
+    let shouldPlaySound = true;
+    let shouldShowBanner = true;
+    
     if (notificationType === 'water_reminder' || notificationType === 'smart_reminder') {
       shouldShowInList = true;
+      shouldPlaySound = true;
+      shouldShowBanner = true;
     } else if (notificationType === 'goal_achieved') {
       shouldShowInList = false;
+      shouldPlaySound = false;
+      shouldShowBanner = true;
+    } else if (notificationType === 'schedule_setup') {
+      // 系统设置类通知，不显示给用户
+      shouldShowInList = false;
+      shouldPlaySound = false;
+      shouldShowBanner = false;
     }
     
-    console.log('是否显示在通知列表:', shouldShowInList);
+    console.log('通知显示配置:', {
+      shouldShowBanner,
+      shouldShowInList,
+      shouldPlaySound,
+      type: notificationType
+    });
     
     return {
-      shouldShowBanner: true,
+      shouldShowBanner,
       shouldShowList: shouldShowInList,
-      shouldPlaySound: true,
+      shouldPlaySound,
       shouldSetBadge: false,
     };
   },
@@ -57,7 +74,21 @@ export const NotificationUtils = {
       let finalStatus = existingStatus;
       
       if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
+        const { status } = await Notifications.requestPermissionsAsync({
+          ios: {
+            allowAlert: true,
+            allowBadge: true,
+            allowSound: true,
+            allowAnnouncements: true,
+            allowCriticalAlerts: true,
+          },
+          android: {
+            allowAlert: true,
+            allowBadge: true,
+            allowSound: true,
+            allowAnnouncements: true,
+          }
+        });
         finalStatus = status;
       }
       
@@ -72,6 +103,22 @@ export const NotificationUtils = {
           importance: Notifications.AndroidImportance.MAX,
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#4FC3F7',
+          enableVibrate: true,
+          enableLights: true,
+          lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+          bypassDnd: true,
+        });
+        
+        // 创建高优先级通知渠道（Android 8.0+）
+        await Notifications.setNotificationChannelAsync('water-reminder-high', {
+          name: '喝水提醒（高优先级）',
+          importance: Notifications.AndroidImportance.HIGH,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#4FC3F7',
+          enableVibrate: true,
+          enableLights: true,
+          lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+          bypassDnd: false,
         });
       }
       
@@ -91,6 +138,9 @@ export const NotificationUtils = {
           body,
           sound: 'default',
           data: { type: 'water_reminder' },
+          priority: Notifications.AndroidNotificationPriority.HIGH,
+          sticky: false,
+          autoDismiss: false,
         },
         trigger: null, // 立即发送
       });
@@ -129,10 +179,14 @@ export const NotificationUtils = {
             body: '记得补充水分，保持身体健康～',
             sound: 'default',
             data: { type: 'water_reminder', baseTime: baseTime.getTime() },
+            priority: Notifications.AndroidNotificationPriority.HIGH,
+            sticky: false,
+            autoDismiss: false,
           },
           trigger: {
             type: Notifications.SchedulableTriggerInputTypes.DATE,
             date: nextReminderTime,
+            channelId: Platform.OS === 'android' ? 'water-reminder' : undefined,
           },
         });
         
@@ -141,6 +195,7 @@ export const NotificationUtils = {
           type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
           seconds: intervalMinutes * 60,
           repeats: true,
+          channelId: Platform.OS === 'android' ? 'water-reminder' : undefined,
         };
         
         await Notifications.scheduleNotificationAsync({
@@ -149,6 +204,9 @@ export const NotificationUtils = {
             body: '记得补充水分，保持身体健康～',
             sound: 'default',
             data: { type: 'water_reminder' },
+            priority: Notifications.AndroidNotificationPriority.HIGH,
+            sticky: false,
+            autoDismiss: false,
           },
           trigger,
         });
@@ -160,6 +218,7 @@ export const NotificationUtils = {
           type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
           seconds: intervalMinutes * 60,
           repeats: true,
+          channelId: Platform.OS === 'android' ? 'water-reminder' : undefined,
         };
         
         await Notifications.scheduleNotificationAsync({
@@ -168,6 +227,9 @@ export const NotificationUtils = {
             body: '记得补充水分，保持身体健康～',
             sound: 'default',
             data: { type: 'water_reminder' },
+            priority: Notifications.AndroidNotificationPriority.HIGH,
+            sticky: false,
+            autoDismiss: false,
           },
           trigger,
         });
@@ -292,10 +354,14 @@ export const NotificationUtils = {
             body: '别忘了补充水分哦～',
             sound: 'default',
             data: { type: 'smart_reminder' },
+            priority: Notifications.AndroidNotificationPriority.HIGH,
+            sticky: false,
+            autoDismiss: false,
           },
           trigger: {
             type: Notifications.SchedulableTriggerInputTypes.DATE,
             date: reminderTime,
+            channelId: Platform.OS === 'android' ? 'water-reminder' : undefined,
           },
         });
       }
